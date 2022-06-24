@@ -7,6 +7,11 @@ from app import app, db
 from db.user import User
 
 
+@app.route('/health')
+def health():
+    return 'OK'
+
+
 @app.route('/users')
 def get_all_users():
     users = [user for user in User.select().dicts()]
