@@ -1,0 +1,14 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  labels:
+    app: {{ include "backend.fullname" . }}
+  name: {{ include "backend.fullname" . }}-configmap
+data:
+  FLASK_DB_HOST: {{ .Values.config.FLASK_DB_HOST }}
+  DB_USER: {{ .Values.config.DB_USER }}
+  DB_PASSWD: {{ .Values.config.DB_PASSWD }}
+  DB_HOST: {{ .Values.config.DB_HOST }}
+  DB_PORT: {{ .Values.config.DB_PORT }}
+  FLASK_ENV: {{ .Values.config.FLASK_ENV }}

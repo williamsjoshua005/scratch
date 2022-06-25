@@ -1,0 +1,8 @@
+secret:
+  DB_USER: scratch
+  DB_PASSWD: Sc1thscr@tch
+service:
+  type: NodePort
+  port: 80
+volume:
+  storage: 100Mi
