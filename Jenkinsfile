@@ -16,14 +16,14 @@ pipeline {
                     steps {
 
                         echo "Building docker image ${TAG}"
-                        sh 'docker build -t joshwill/scratch-api-test:${TAG} .'
+                        sh 'docker build -t joshwill/scratch_api:${TAG} .'
 
                     }
                     post {
                         success {
                             echo 'Build Succeeded, pushing image to registry...'
-                            sh 'docker push joshwill/scratch-api-test:${TAG}'
-                            sh 'docker rmi joshwill/scratch-api-test:${TAG}'
+                            sh 'docker push joshwill/scratch_api:${TAG}'
+                            sh 'docker rmi joshwill/scratch_api:${TAG}'
 
                         }
                         failure {
@@ -33,7 +33,7 @@ pipeline {
                 }
                 stage('test') {
                     agent {docker {
-                        image 'joshwill/scratch-api-test:latest'
+                        image 'joshwill/scratch_api:latest'
                         args '-v /tmp:/tmp'
                         }
                     }
@@ -126,8 +126,8 @@ pipeline {
 def kubeDeploy(Map map) {
     withCredentials([file(credentialsId: 'KUBECONFIG2', variable: 'KUBECONFIG')]) {
         // some block
-        sh "kubectl --kubeconfig=${KUBECONFIG} --namespace=default set image deployment/scratch-api-test scratch-api-test=joshwill/scratch-api-test:${TAG}"
-        sh "kubectl --kubeconfig=${KUBECONFIG} --namespace=default rollout status deployment/scratch-api-test --timeout=120s"
+        sh "kubectl --kubeconfig=${KUBECONFIG} --namespace=default set image deployment/scratch_api scratch_api=joshwill/scratch_api:${TAG}"
+        sh "kubectl --kubeconfig=${KUBECONFIG} --namespace=default rollout status deployment/scratch_api --timeout=120s"
         echo "Deployed to ${map.environment}"
     }
 
@@ -135,6 +135,6 @@ def kubeDeploy(Map map) {
 
 def kubeRollback(Map map) {
     withCredentials([file(credentialsId: 'KUBECONFIG2', variable: 'KUBECONFIG')]) {
-        sh "kubectl --kubeconfig=${KUBECONFIG} --namespace=default rollout undo deployment/scratch-api-test"
+        sh "kubectl --kubeconfig=${KUBECONFIG} --namespace=default rollout undo deployment/scratch_api"
     }
 }
