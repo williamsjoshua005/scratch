@@ -1,0 +1,17 @@
+image:
+  repository: joshwill/scratch_api
+  tag: "2.0"
+replicaCount: 1
+service:
+  type: ClusterIP
+  port: 5000
+ingress:
+  enabled: true
+  host: scratch.minikube.local
+config:
+  FLASK_DB_HOST: ""
+  DB_USER: "scratch"
+  DB_PASSWD: "Sc1thscr@tch"
+  DB_HOST: "db"
+  DB_PORT: "5432"
+  FLASK_ENV: "production"
