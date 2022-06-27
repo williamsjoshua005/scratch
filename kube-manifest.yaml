@@ -1,0 +1,154 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scratch_api
+  labels:
+    app: scratch_api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scratch_api
+  template:
+    metadata:
+      labels:
+        app: scratch_api
+    spec:
+      dnsPolicy: Default
+      containers:
+      - env:
+        - name: FLASK_DB_HOST
+          value: ""
+        - name: DB_USER
+          value: ""
+        - name: DB_PASSWD
+          value: ""
+        - name: DB_HOST
+          value: ""
+        - name: DB_PORT
+          value: ""
+        - name: FLASK_ENV
+          value: ""
+      - name: scratch_api
+        image: joshwill/scratch_api
+#        envFrom:
+#          - secretRef:
+#              name: scratch_api-readonly #environment variables should be created in secrets
+        ports:
+        - containerPort: 5000
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        resources:
+          requests:
+            memory: 1G
+            cpu: 50m
+          limits:
+            memory: 2G
+            cpu: 100m
+        volumeMounts:
+        - name: log-volume
+          mountPath: /data/logs
+      - name: fluentbit
+        image: fluent/fluent-bit:1.6-debug
+        resources:
+          requests:
+            memory: 200M
+            cpu: 10m
+          limits:
+            memory: 250M
+            cpu: 20m
+        volumeMounts:
+        - name: log-volume
+          mountPath: /data/logs
+        - name: config
+          mountPath: /fluent-bit/etc/fluent-bit.conf
+          subPath: fluent-bit.conf
+      volumes:
+      - name: log-volume
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: fluentbit-configmap-scratch_api
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-configmap-scratch_api
+  labels:
+    component: fluentbit-configmap-scratch_api
+data:
+  fluent-bit.conf: |-
+    [SERVICE]
+        Flush        1
+        Daemon       Off
+        Log_Level    info
+
+    [INPUT]
+        Name             tail
+        Path             /data/logs/scratch_api-info.log
+        Multiline        off
+        Buffer_Max_Size  128k
+
+
+    [OUTPUT]
+        Name  es
+        Match *
+        Host  logs.scratchpay.com
+        Port  9200
+        Logstash_Format On
+        Retry_Limit False
+        Trace_Output On
+        Time_Key @timestamp
+        Logstash_Prefix scratch_api-production
+        Index scratch_api-production
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: scratch_api
+  name: scratch_api
+spec:
+  ports:
+  - name: "5000"
+    port: 5000
+    protocol: TCP
+    targetPort: 5000
+    nodePort: 30000
+  selector:
+    app: scratch_api
+  type: NodePort
+
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+  name: scratch-api-ingress
+spec:
+  rules:
+  - host: scratch-api.minikube.local
+    http:
+      paths:
+      - backend:
+          serviceName: scratch-api
+          servicePort: 5000
+        path: /
+  tls:
+  - hosts:
+    - backend.minikube.local
+    secretName: ingress-tls
